@@ -43,7 +43,7 @@ def starting_settings():
 
     def wrapper():
         print(L.startingMessage)
-        message = input(L.AutoDeleteFolders)
+        message = input(L.autoDeleteFolders)
 
         if message != '3' and message != '4':
             wrapper()

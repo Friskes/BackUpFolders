@@ -26,7 +26,7 @@ reversePath = '[!] You mixed up the paths.'
 foldersMissing = 'There are no folders to delete.'
 copyStart = 'I start to copy..'
 copyEnd = 'Copy completed!'
-AutoDeleteFolders = 'To automatically delete the folders "Cache", "Errors", "Logs" enter: 3\nTo disable this function, enter: 4\n'
+autoDeleteFolders = 'To automatically delete the folders "Cache", "Errors", "Logs" enter: 3\nTo disable this function, enter: 4\n'
 jobOptions = 'To download a backup, enter: 1\nTo create a backup, enter: 2\nFor information, enter: help\n'
 
 if localization == 'ru_RU':
@@ -52,5 +52,5 @@ if localization == 'ru_RU':
     foldersMissing = 'Папки для удаления отсутствуют.'
     copyStart = 'Начинаю копировать..'
     copyEnd = 'Копирование завершено!'
-    AutoDeleteFolders = 'Для автоматического удаления папок "Cache", "Errors", "Logs" введите: 3\nДля отключения данной функции введите: 4\n'
+    autoDeleteFolders = 'Для автоматического удаления папок "Cache", "Errors", "Logs" введите: 3\nДля отключения данной функции введите: 4\n'
     jobOptions = 'Чтобы загрузить бэкап введите: 1\nЧтобы создать бэкап введите: 2\nДля получения информации введите: help\n'
