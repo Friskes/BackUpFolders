@@ -24,7 +24,7 @@ def main(rev):
         gui.message_handler(2)
         return True
 
-    if not 'Interface' in os.listdir(backUpFolder) or not 'WTF' in os.listdir(backUpFolder):
+    if not reverse and not 'Interface' in os.listdir(backUpFolder) or not reverse and not 'WTF' in os.listdir(backUpFolder):
         gui.message_handler(3)
         return True
 
