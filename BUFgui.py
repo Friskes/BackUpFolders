@@ -12,7 +12,7 @@ cursor = connect.cursor()
 window = Tk()
 window.title("Back Up Folders")
 window.resizable(height=False, width=True)
-window.iconphoto(True, PhotoImage(file=('gear_icon20x20.png')))
+window.iconphoto(True, PhotoImage(file=('gear20x20.png')))
 
 # спавним окно при запуске посередине экрана
 screenwidth = window.winfo_screenwidth() // 2 - 260 # влево вправо
