@@ -2,7 +2,6 @@ import locale
 import ctypes
 
 windll = ctypes.windll.kernel32
-windll.GetUserDefaultUILanguage()
 localization = locale.windows_locale[windll.GetUserDefaultUILanguage()]
 
 infoMessage = 'Greetings! This program was created by Friskes.\n\nThis program is designed for automate the\
@@ -24,6 +23,10 @@ reversePath = 'You mixed up the paths.'
 autoDeleteFolders = 'To auto delete folders\ncheck the boxes below.'
 downloadBackUp = 'Download backup'
 createBackUp = 'Create backup'
+loading = '      Loading...'
+creation = '      Creation...'
+bUpLoaded = ' Backup loaded.'
+bUpCreated = 'Backup created.'
 
 if localization == 'ru_RU':
 
@@ -46,3 +49,7 @@ if localization == 'ru_RU':
     autoDeleteFolders = 'Для авто удаления папок\nпоставьте галочки ниже.'
     downloadBackUp = 'Загрузить бэкап'
     createBackUp = 'Создать бэкап'
+    loading = '     Загрузка...'
+    creation = '     Создание...'
+    bUpLoaded = 'Бэкап загружен.'
+    bUpCreated = '  Бэкап создан.'

@@ -45,6 +45,7 @@ def main(rev):
         os.chmod(path, stat.S_IWRITE)
         func(path)
 
+    gui.info_dynamic_text(reverse, 0)
     gui.update_statusbar(14)
     if 'Interface' in folder:
         shutil.rmtree(gameFolder + 'Interface', onerror=remove_readonly)
@@ -71,6 +72,7 @@ def main(rev):
 
     shutil.copytree(backUpFolder + 'Interface', gameFolder + 'Interface')
     shutil.copytree(backUpFolder + 'WTF', gameFolder + 'WTF')
+    gui.info_dynamic_text(reverse, 1)
     gui.update_statusbar(100)
 
     return True

@@ -1,6 +1,5 @@
 from tkinter import *
-from tkinter import filedialog
-from tkinter import messagebox
+from tkinter import filedialog, messagebox
 from tkinter.ttk import Style, Progressbar
 import localization as L
 from BUFcore import main
@@ -36,6 +35,17 @@ def button2_click():
 
         cursor.execute(f"UPDATE settings SET backup = '{directory}'")
         connect.commit()
+
+def info_dynamic_text(arg, arg2):
+    if arg == True and arg2 == 0:
+        label2.configure(text=L.creation)
+    elif arg == False and arg2 == 0:
+        label2.configure(text=L.loading)
+
+    if arg == True and arg2 == 1:
+        label2.configure(text=L.bUpCreated)
+    elif arg == False and arg2 == 1:
+        label2.configure(text=L.bUpLoaded)
 
 def message_handler(arg=0):
     if arg == 0:
@@ -80,6 +90,9 @@ button5.grid(column=0, row=2, padx=255, pady=12, sticky=NW)
 
 label1 = Label(window, text=L.autoDeleteFolders, font=("Arial Bold", 11))
 label1.grid(column=0, row=2, padx=7, pady=5, sticky=NW)
+
+label2 = Label(window, text=None, font=("Arial Bold", 12))
+label2.grid(column=0, row=3, padx=243, pady=0, sticky=NW)
 
 pathLabel1 = Label(window, text=None, font=("Arial Bold", 11), bg="white", relief="groove")
 pathLabel1.grid(column=0, row=0, padx=147, pady=12, sticky=NW)
