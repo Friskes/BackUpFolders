@@ -1,78 +1,88 @@
-import os, stat
+import os
+import stat
 import shutil
-import BUFgui as gui
 import sqlite3
+import threading
 
-connect = sqlite3.connect("BUFdb.db")
-cursor = connect.cursor()
+import BUFgui
 
-def main(rev):
-    reverse = rev
 
-    gameFolder = cursor.execute("SELECT game, backup FROM settings").fetchall()[0][0]
-    backUpFolder = cursor.execute("SELECT game, backup FROM settings").fetchall()[0][1]
+def remove_readonly(func, path, _):
+    '''Clear the readonly bit and reattempt the removal'''
+    os.chmod(path, stat.S_IWRITE)
+    func(path)
 
-    gameFolder = gameFolder.replace('/', '\\') + '\\'
-    backUpFolder = backUpFolder.replace('/', '\\') + '\\'
 
-    if 'Data' in os.listdir(backUpFolder) and not 'Data' in os.listdir(gameFolder):
-        if 'Interface' in os.listdir(gameFolder) and 'WTF' in os.listdir(gameFolder):
-            gui.message_handler(1)
+class FoldersTransfer(threading.Thread):
+    def __init__(self, buf_window, reverse):
+        super().__init__()
+
+        self.conect = sqlite3.connect("BUFdb.db")
+        self.cursor = self.conect.cursor()
+
+        self.buf_window = buf_window
+        self.reverse = reverse
+
+        self.gameFolder = self.cursor.execute("SELECT game, backup FROM settings").fetchall()[0][0]
+        self.backUpFolder = self.cursor.execute("SELECT game, backup FROM settings").fetchall()[0][1]
+        self.deleteCache = self.cursor.execute("SELECT cache, errors, logs FROM settings").fetchall()[0]
+
+        self.gameFolder = self.gameFolder.replace('/', '\\') + '\\'
+        self.backUpFolder = self.backUpFolder.replace('/', '\\') + '\\'
+
+
+    def exception_checking(self):
+        if 'Data' in os.listdir(self.backUpFolder) and not 'Data' in os.listdir(self.gameFolder):
+            if 'Interface' in os.listdir(self.gameFolder) and 'WTF' in os.listdir(self.gameFolder):
+                self.buf_window.message_handler('reversePath')
+                return True
+
+        if self.gameFolder == self.backUpFolder:
+            self.buf_window.message_handler('samePath')
             return True
 
-    if not 'Data' in os.listdir(gameFolder):
-        gui.message_handler(2)
-        return True
+        if not 'Data' in os.listdir(self.gameFolder):
+            self.buf_window.message_handler('badGamePath')
+            return True
 
-    if not reverse and not 'Interface' in os.listdir(backUpFolder) or not reverse and not 'WTF' in os.listdir(backUpFolder):
-        gui.message_handler(3)
-        return True
+        if not self.reverse and not 'Interface' in os.listdir(self.backUpFolder) or \
+           not self.reverse and not 'WTF' in os.listdir(self.backUpFolder):
+            self.buf_window.message_handler('badBackUpPath')
+            return True
 
-    if gameFolder == backUpFolder:
-        gui.message_handler(4)
-        return True
 
-    deleteCache = cursor.execute("SELECT cache, errors, logs FROM settings").fetchall()[0]
+    def run(self):
+        if self.exception_checking() == True:
+            return
 
-    # инвертируем значения переменных, теперь в gameFolder содержаться значения backUpFolder и наоборот
-    if reverse:
-        gameFolder, backUpFolder = backUpFolder, gameFolder
+        self.buf_window.start_action()
 
-    folder = os.listdir(gameFolder) # Возвращает список из имён файлов в искомой папке
+        if self.reverse:
+            self.gameFolder, self.backUpFolder = self.backUpFolder, self.gameFolder
 
-    def remove_readonly(func, path, _):
-        '''Clear the readonly bit and reattempt the removal'''
-        os.chmod(path, stat.S_IWRITE)
-        func(path)
+        self.folder = os.listdir(self.gameFolder)
 
-    gui.info_dynamic_text(reverse, 0)
-    gui.update_statusbar(14)
-    if 'Interface' in folder:
-        shutil.rmtree(gameFolder + 'Interface', onerror=remove_readonly)
+        if 'Interface' in self.folder:
+            shutil.rmtree(self.gameFolder + 'Interface', onerror=remove_readonly)
 
-    gui.update_statusbar(28)
-    if 'WTF' in folder:
-        shutil.rmtree(gameFolder + 'WTF', onerror=remove_readonly)
+        if 'WTF' in self.folder:
+            shutil.rmtree(self.gameFolder + 'WTF', onerror=remove_readonly)
 
-    gui.update_statusbar(42)
-    if deleteCache[0] == 'True':
-        if 'Cache' in folder and not reverse:
-            shutil.rmtree(gameFolder + 'Cache', onerror=remove_readonly)
+        if self.deleteCache[0] == 'True':
+            if 'Cache' in self.folder and not self.reverse:
+                shutil.rmtree(self.gameFolder + 'Cache', onerror=remove_readonly)
 
-    gui.update_statusbar(56)
-    if deleteCache[1] == 'True':
-        if 'Errors' in folder and not reverse:
-            shutil.rmtree(gameFolder + 'Errors', onerror=remove_readonly)
+        if self.deleteCache[1] == 'True':
+            if 'Errors' in self.folder and not self.reverse:
+                shutil.rmtree(self.gameFolder + 'Errors', onerror=remove_readonly)
 
-    gui.update_statusbar(70)
-    if deleteCache[2] == 'True':
-        if 'Logs' in folder and not reverse:
-            shutil.rmtree(gameFolder + 'Logs', onerror=remove_readonly)
-    gui.update_statusbar(84)
+        if self.deleteCache[2] == 'True':
+            if 'Logs' in self.folder and not self.reverse:
+                shutil.rmtree(self.gameFolder + 'Logs', onerror=remove_readonly)
 
-    shutil.copytree(backUpFolder + 'Interface', gameFolder + 'Interface')
-    shutil.copytree(backUpFolder + 'WTF', gameFolder + 'WTF')
-    gui.info_dynamic_text(reverse, 1)
-    gui.update_statusbar(100)
+        shutil.copytree(self.backUpFolder + 'Interface', self.gameFolder + 'Interface')
+        shutil.copytree(self.backUpFolder + 'WTF', self.gameFolder + 'WTF')
 
-    return True
+        self.buf_window.stop_action()
+
+        return

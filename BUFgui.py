@@ -1,152 +1,218 @@
-from tkinter import *
-from tkinter import filedialog, messagebox
-from tkinter.ttk import Style, Progressbar
-import localization as L
-from BUFcore import main
+import tkinter as tk
+from tkinter import ttk, filedialog, messagebox
 import sqlite3
+import threading
+import time
 
-connect = sqlite3.connect("BUFdb.db")
-cursor = connect.cursor()
+import localization as L
+import BUFcore
 
-window = Tk()
-window.title("Back Up Folders")
-window.resizable(height=False, width=True)
-window.iconphoto(True, PhotoImage(file=('gear20x20.png')))
 
-# спавним окно при запуске посередине экрана
-screenwidth = window.winfo_screenwidth() // 2 - 260 # влево вправо
-screenheight = window.winfo_screenheight() // 2 - 140 # вверх вниз
-window.geometry('480x176+{}+{}'.format(screenwidth, screenheight))
+class BUFwindow(tk.Tk):
+    def __init__(self):
+        super().__init__()
 
-def button1_click():
-    directory = filedialog.askdirectory()
+        self.conect = sqlite3.connect("BUFdb.db")
+        self.cursor = self.conect.cursor()
 
-    if not directory == '':
-        pathLabel1.configure(text=directory)
+        self.title("Back Up Folders")
+        self.resizable(height=False, width=True)
+        self.iconphoto(True, tk.PhotoImage(file=('gear20x20.png')))
 
-        cursor.execute(f"UPDATE settings SET game = '{directory}'")
-        connect.commit()
+        screenwidth = (self.winfo_screenwidth() // 2) - 260
+        screenheight = (self.winfo_screenheight() // 2) - 140
+        self.geometry('480x176+{}+{}'.format(screenwidth, screenheight))
 
-def button2_click():
-    directory = filedialog.askdirectory()
+        self.select_game_path_btn = tk.Button(self, text=L.selectGamePath, bg="grey", fg="white", width=18,
+                                              cursor="hand2", command=lambda: self.select_path_btn_click('game'))
+        self.select_game_path_btn.grid(column=0, row=0, padx=10, pady=10, sticky=tk.NW)
 
-    if not directory == '':
-        pathLabel2.configure(text=directory)
+        self.select_backup_path_btn = tk.Button(self, text=L.selectBackUpPath, bg="grey", fg="white", width=18,
+                                                cursor="hand2", command=lambda: self.select_path_btn_click('backup'))
+        self.select_backup_path_btn.grid(column=0, row=1, padx=10, pady=0, sticky=tk.NW)
 
-        cursor.execute(f"UPDATE settings SET backup = '{directory}'")
-        connect.commit()
+        self.download_backup_btn = tk.Button(self, text=L.downloadBackUp, bg="grey", fg="white",
+                                             width=13, cursor="hand2", command=lambda: self.start_folders_transfer(False))
+        self.download_backup_btn.grid(column=0, row=2, padx=370, pady=12, sticky=tk.NW)
 
-def info_dynamic_text(arg, arg2):
-    if arg == True and arg2 == 0:
-        label2.configure(text=L.creation)
-    elif arg == False and arg2 == 0:
-        label2.configure(text=L.loading)
+        self.create_backup_btn = tk.Button(self, text=L.createBackUp, bg="grey", fg="white",
+                                           width=13, cursor="hand2", command=lambda: self.start_folders_transfer(True))
+        self.create_backup_btn.grid(column=0, row=3, padx=370, pady=0, sticky=tk.NW)
 
-    if arg == True and arg2 == 1:
-        label2.configure(text=L.bUpCreated)
-    elif arg == False and arg2 == 1:
-        label2.configure(text=L.bUpLoaded)
+        self.info_title_btn = tk.Button(self, text=L.infoTitle, bg="grey", fg="white",
+                                        cursor="hand2", command=lambda: self.message_handler('infoMessage'))
+        self.info_title_btn.grid(column=0, row=2, padx=255, pady=12, sticky=tk.NW)
 
-def message_handler(arg=0):
-    if arg == 0:
-        messagebox.showinfo(L.infoTitle, L.infoMessage)
-    if arg == 1:
-        messagebox.showerror(L.errorTitle, L.reversePath)
-    if arg == 2:
-        messagebox.showerror(L.errorTitle, L.badGamePath)
-    if arg == 3:
-        messagebox.showerror(L.errorTitle, L.badBackUpPath)
-    if arg == 4:
-        messagebox.showerror(L.errorTitle, L.samePath)
+        self.auto_delete_folders_lbl = tk.Label(self, text=L.autoDeleteFolders, font=("Arial Bold", 11))
+        self.auto_delete_folders_lbl.grid(column=0, row=2, padx=7, pady=5, sticky=tk.NW)
 
-enable = True
+        self.dynamic_text_lbl = tk.Label(self, text=None, font=("Arial Bold", 12))
+        self.dynamic_text_lbl.grid(column=0, row=3, padx=243, pady=0, sticky=tk.NW)
 
-def run_main_false():
-    global enable
-    if enable:
-        enable = False
-        enable = main(False)
+        self.game_path_lbl = tk.Label(self, text=None, font=("Arial Bold", 11), bg="white", relief="groove")
+        self.game_path_lbl.grid(column=0, row=0, padx=147, pady=12, sticky=tk.NW)
 
-def run_main_true():
-    global enable
-    if enable:
-        enable = False
-        enable = main(True)
+        self.backup_path_lbl = tk.Label(self, text=None, font=("Arial Bold", 11), bg="white", relief="groove")
+        self.backup_path_lbl.grid(column=0, row=1, padx=147, pady=2, sticky=tk.NW)
 
-button1 = Button(window, text=L.selectGamePath, bg="grey", fg="white", width=18, cursor="hand2", command=button1_click)
-button1.grid(column=0, row=0, padx=10, pady=10, sticky=NW)
+        self.game_path_lbl.configure(text=self.cursor.execute("SELECT game, backup FROM settings").fetchall()[0][0])
+        self.backup_path_lbl.configure(text=self.cursor.execute("SELECT game, backup FROM settings").fetchall()[0][1])
 
-button2 = Button(window, text=L.selectBackUpPath, bg="grey", fg="white", width=18, cursor="hand2", command=button2_click)
-button2.grid(column=0, row=1, padx=10, pady=0, sticky=NW)
+        self.cache_chk_btn_state = tk.BooleanVar()
+        self.cache_chk_btn_state.set(self.cursor.execute("SELECT cache, errors, logs FROM settings").fetchall()[0][0])
 
-button3 = Button(window, text=L.downloadBackUp, bg="grey", fg="white", width=13, cursor="hand2", command=run_main_false)
-button3.grid(column=0, row=2, padx=370, pady=12, sticky=NW)
+        self.cache_chk_btn = tk.Checkbutton(self, text='Cache', var=self.cache_chk_btn_state, relief='groove',
+                                            cursor="hand2", command=lambda: self.folders_chk_btn_save('cache'))
+        self.cache_chk_btn.grid(column=0, row=3, padx=6, pady=0, sticky=tk.NW)
 
-button4 = Button(window, text=L.createBackUp, bg="grey", fg="white", width=13, cursor="hand2", command=run_main_true)
-button4.grid(column=0, row=3, padx=370, pady=0, sticky=NW)
+        self.errors_chk_btn_state = tk.BooleanVar()
+        self.errors_chk_btn_state.set(self.cursor.execute("SELECT cache, errors, logs FROM settings").fetchall()[0][1])
 
-button5 = Button(window, text=L.infoTitle, bg="grey", fg="white", cursor="hand2", command=message_handler)
-button5.grid(column=0, row=2, padx=255, pady=12, sticky=NW)
+        self.errors_chk_btn = tk.Checkbutton(self, text='Errors', var=self.errors_chk_btn_state, relief='groove',
+                                             cursor="hand2", command=lambda: self.folders_chk_btn_save('errors'))
+        self.errors_chk_btn.grid(column=0, row=3, padx=96, pady=0, sticky=tk.NW)
 
-label1 = Label(window, text=L.autoDeleteFolders, font=("Arial Bold", 11))
-label1.grid(column=0, row=2, padx=7, pady=5, sticky=NW)
+        self.logs_chk_btn_state = tk.BooleanVar()
+        self.logs_chk_btn_state.set(self.cursor.execute("SELECT cache, errors, logs FROM settings").fetchall()[0][2])
 
-label2 = Label(window, text=None, font=("Arial Bold", 12))
-label2.grid(column=0, row=3, padx=243, pady=0, sticky=NW)
+        self.logs_chk_btn = tk.Checkbutton(self, text='Logs', var=self.logs_chk_btn_state, relief='groove',
+                                           cursor="hand2", command=lambda: self.folders_chk_btn_save('logs'))
+        self.logs_chk_btn.grid(column=0, row=3, padx=186, pady=0, sticky=tk.NW)
 
-pathLabel1 = Label(window, text=None, font=("Arial Bold", 11), bg="white", relief="groove")
-pathLabel1.grid(column=0, row=0, padx=147, pady=12, sticky=NW)
+        self.progressbar_style = ttk.Style()
+        self.progressbar_style.theme_use('default')
+        self.progressbar_style.configure(style="grey.Horizontal.TProgressbar", background='grey')
 
-pathLabel2 = Label(window, text=None, font=("Arial Bold", 11), bg="white", relief="groove")
-pathLabel2.grid(column=0, row=1, padx=147, pady=2, sticky=NW)
+        self.progressbar = ttk.Progressbar(self, orient=tk.HORIZONTAL, length=470,
+                                           style='grey.Horizontal.TProgressbar', mode="determinate", maximum=1000)
+        self.progressbar.grid(column=0, row=4, padx=5, pady=5, sticky=tk.NW)
 
-pathLabel1.configure(text=cursor.execute("SELECT game, backup FROM settings").fetchall()[0][0])
-pathLabel2.configure(text=cursor.execute("SELECT game, backup FROM settings").fetchall()[0][1])
+        self.mainloop()
 
-def check_button1_save():
-    cursor.execute(f"UPDATE settings SET cache = '{check_button1_state.get()}'")
-    connect.commit()
 
-def check_button2_save():
-    cursor.execute(f"UPDATE settings SET errors = '{check_button2_state.get()}'")
-    connect.commit()
+    def select_path_btn_click(self, path_type):
+        if path_type == 'game':
+            directory = filedialog.askdirectory(title=L.selectGamePath)
+        elif path_type == 'backup':
+            directory = filedialog.askdirectory(title=L.selectBackUpPath)
 
-def check_button3_save():
-    cursor.execute(f"UPDATE settings SET logs = '{check_button3_state.get()}'")
-    connect.commit()
+        if not directory == '':
+            if path_type == 'game':
+                self.game_path_lbl.configure(text=directory)
+            elif path_type == 'backup':
+                self.backup_path_lbl.configure(text=directory)
 
-check_button1_state = BooleanVar()
-check_button1_state.set(cursor.execute("SELECT cache, errors, logs FROM settings").fetchall()[0][0])
+            self.cursor.execute(f"UPDATE settings SET {path_type} = '{directory}'")
+            self.conect.commit()
 
-check_button1 = Checkbutton(window, text='Cache', var=check_button1_state, relief='groove', cursor="hand2", command=check_button1_save)
-check_button1.grid(column=0, row=3, padx=6, pady=0, sticky=NW)
 
-check_button2_state = BooleanVar()
-check_button2_state.set(cursor.execute("SELECT cache, errors, logs FROM settings").fetchall()[0][1])
+    def folders_chk_btn_save(self, folder_name):
+        if folder_name == 'cache':
+            self.cursor.execute(f"UPDATE settings SET {folder_name} = '{self.cache_chk_btn_state.get()}'")
+        elif folder_name == 'errors':
+            self.cursor.execute(f"UPDATE settings SET {folder_name} = '{self.errors_chk_btn_state.get()}'")
+        elif folder_name == 'logs':
+            self.cursor.execute(f"UPDATE settings SET {folder_name} = '{self.logs_chk_btn_state.get()}'")
 
-check_button2 = Checkbutton(window, text='Errors', var=check_button2_state, relief='groove', cursor="hand2", command=check_button2_save)
-check_button2.grid(column=0, row=3, padx=96, pady=0, sticky=NW)
+        self.conect.commit()
 
-check_button3_state = BooleanVar()
-check_button3_state.set(cursor.execute("SELECT cache, errors, logs FROM settings").fetchall()[0][2])
 
-check_button3 = Checkbutton(window, text='Logs', var=check_button3_state, relief='groove', cursor="hand2", command=check_button3_save)
-check_button3.grid(column=0, row=3, padx=186, pady=0, sticky=NW)
+    def message_handler(self, msg_type):
+        if msg_type == 'infoMessage':
+            messagebox.showinfo(L.infoTitle, L.infoMessage)
+        if msg_type == 'reversePath':
+            messagebox.showerror(L.errorTitle, L.reversePath)
+        if msg_type == 'badGamePath':
+            messagebox.showerror(L.errorTitle, L.badGamePath)
+        if msg_type == 'badBackUpPath':
+            messagebox.showerror(L.errorTitle, L.badBackUpPath)
+        if msg_type == 'samePath':
+            messagebox.showerror(L.errorTitle, L.samePath)
 
-statusbar_style = Style()
-statusbar_style.theme_use('default')
-statusbar_style.configure("grey.Horizontal.TProgressbar", background='grey')
 
-statusbar = Progressbar(window, orient=HORIZONTAL, length=470, style='grey.Horizontal.TProgressbar', mode="determinate")
-statusbar.grid(column=0, row=4, padx=5, pady=5, sticky=NW)
+    def start_folders_transfer(self, reverse):
+        self.reverse = reverse
+        BUFcore.FoldersTransfer(self, self.reverse).start()
 
-def update_statusbar(val):
 
-    statusbar_style.configure("grey.Horizontal.TProgressbar", background='grey')
-    if val == 100:
-        statusbar_style.configure("grey.Horizontal.TProgressbar", background='green')
+    def start_action(self):
+        self.select_game_path_btn.configure(state=tk.DISABLED)
+        self.select_backup_path_btn.configure(state=tk.DISABLED)
+        self.cache_chk_btn.configure(state=tk.DISABLED)
+        self.errors_chk_btn.configure(state=tk.DISABLED)
+        self.logs_chk_btn.configure(state=tk.DISABLED)
+        self.download_backup_btn.configure(state=tk.DISABLED)
+        self.create_backup_btn.configure(state=tk.DISABLED)
 
-    statusbar.configure(value=val)
-    statusbar.update()
+        self.progressbar.configure(mode="indeterminate", value=0)
+        self.progressbar_style.configure(style="grey.Horizontal.TProgressbar", background='grey')
 
-window.mainloop()
+        self.progressbar_thread = AsyncAction_ProgressBar(self.progressbar)
+        self.progressbar_thread.start()
+
+        self.dynamictext_thread = AsyncAction_DynamicText(self.reverse, self.dynamic_text_lbl)
+        self.dynamictext_thread.start()
+
+
+    def stop_action(self):
+        self.dynamictext_thread.stop()
+        self.progressbar_thread.stop()
+
+        self.select_game_path_btn.configure(state=tk.NORMAL)
+        self.select_backup_path_btn.configure(state=tk.NORMAL)
+        self.cache_chk_btn.configure(state=tk.NORMAL)
+        self.errors_chk_btn.configure(state=tk.NORMAL)
+        self.logs_chk_btn.configure(state=tk.NORMAL)
+        self.download_backup_btn.configure(state=tk.NORMAL)
+        self.create_backup_btn.configure(state=tk.NORMAL)
+
+        self.progressbar.configure(mode="determinate", value=1000)
+        self.progressbar_style.configure(style="grey.Horizontal.TProgressbar", background='green')
+
+
+class AsyncAction_ProgressBar(threading.Thread):
+    def __init__(self, progressbar):
+        super().__init__()
+
+        self.progressbar = progressbar
+
+    def run(self):
+        self.progressbar.start(interval=1)
+
+    def stop(self):
+        self.progressbar.stop()
+
+
+class AsyncAction_DynamicText(threading.Thread):
+    def __init__(self, reverse, dynamic_text_lbl):
+        super().__init__()
+
+        self.reverse = reverse
+        self.dynamic_text_lbl = dynamic_text_lbl
+        self.flag = True
+
+    def run(self):
+
+        while self.flag:
+            for dot in ('   ', '•  ', '•• ', '•••'):
+
+                if not self.flag:
+                    break
+
+                if self.reverse == True:
+                    self.dynamic_text_lbl.configure(text=L.creation + dot)
+                elif self.reverse == False:
+                    self.dynamic_text_lbl.configure(text=L.loading + dot)
+
+                time.sleep(0.15)
+        else:
+            if self.reverse == True:
+                self.dynamic_text_lbl.configure(text=L.bUpCreated)
+            elif self.reverse == False:
+                self.dynamic_text_lbl.configure(text=L.bUpLoaded)
+
+    def stop(self):
+        self.flag = False
+
+
+BUFwindow()

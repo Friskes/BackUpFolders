@@ -1,8 +1,7 @@
-import locale
 import ctypes
+import locale
 
-windll = ctypes.windll.kernel32
-localization = locale.windows_locale[windll.GetUserDefaultUILanguage()]
+localization = locale.windows_locale[ctypes.windll.kernel32.GetUserDefaultUILanguage()]
 
 infoMessage = 'Greetings! This program was created by Friskes.\n\nThis program is designed for automate the\
  transfer of your backup copy of the "Interface" and "WTF" folders to the game folder and to create a backup\
@@ -23,8 +22,8 @@ reversePath = 'You mixed up the paths.'
 autoDeleteFolders = 'To auto delete folders\ncheck the boxes below.'
 downloadBackUp = 'Download backup'
 createBackUp = 'Create backup'
-loading = '      Loading...'
-creation = '      Creation...'
+loading = '      Loading'
+creation = '     Creation'
 bUpLoaded = ' Backup loaded.'
 bUpCreated = 'Backup created.'
 
@@ -49,7 +48,7 @@ if localization == 'ru_RU':
     autoDeleteFolders = 'Для авто удаления папок\nпоставьте галочки ниже.'
     downloadBackUp = 'Загрузить бэкап'
     createBackUp = 'Создать бэкап'
-    loading = '     Загрузка...'
-    creation = '     Создание...'
+    loading = '     Загрузка'
+    creation = '    Создание'
     bUpLoaded = 'Бэкап загружен.'
     bUpCreated = '  Бэкап создан.'
