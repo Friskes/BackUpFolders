@@ -23,6 +23,9 @@ class FoldersTransfer(threading.Thread):
         self.buf_window = buf_window
         self.reverse = reverse
 
+        self.current = 0
+        self.maximum = 0
+
         self.gameFolder = self.cursor.execute("SELECT game, backup FROM settings").fetchall()[0][0]
         self.backUpFolder = self.cursor.execute("SELECT game, backup FROM settings").fetchall()[0][1]
         self.deleteCache = self.cursor.execute("SELECT cache, errors, logs FROM settings").fetchall()[0]
@@ -49,6 +52,26 @@ class FoldersTransfer(threading.Thread):
            not self.reverse and not 'WTF' in os.listdir(self.backUpFolder):
             self.buf_window.message_handler('badBackUpPath')
             return True
+
+
+    def number_of_files(self, path):
+        all_files = [os.path.join(folders_path, files)
+        for folders_path, _, list_files in os.walk(path)
+        for files in list_files]
+
+        self.maximum += len(all_files)
+
+
+    def copy3(self, src, dst, *, follow_symlinks=True):
+
+        self.current += 1
+        self.buf_window.progressbar_thread.update_bar(self.current)
+
+        if os.path.isdir(dst):
+            dst = os.path.join(dst, os.path.basename(src))
+        shutil.copyfile(src, dst, follow_symlinks=follow_symlinks)
+        shutil.copystat(src, dst, follow_symlinks=follow_symlinks)
+        return dst
 
 
     def run(self):
@@ -80,8 +103,12 @@ class FoldersTransfer(threading.Thread):
             if 'Logs' in self.folder and not self.reverse:
                 shutil.rmtree(self.gameFolder + 'Logs', onerror=remove_readonly)
 
-        shutil.copytree(self.backUpFolder + 'Interface', self.gameFolder + 'Interface')
-        shutil.copytree(self.backUpFolder + 'WTF', self.gameFolder + 'WTF')
+        self.number_of_files(self.backUpFolder + 'Interface')
+        self.number_of_files(self.backUpFolder + 'WTF')
+        self.buf_window.progressbar.configure(maximum=self.maximum)
+
+        shutil.copytree(self.backUpFolder + 'Interface', self.gameFolder + 'Interface', copy_function=self.copy3)
+        shutil.copytree(self.backUpFolder + 'WTF', self.gameFolder + 'WTF', copy_function=self.copy3)
 
         self.buf_window.stop_action()
 

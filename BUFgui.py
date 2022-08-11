@@ -144,7 +144,7 @@ class BUFwindow(tk.Tk):
         self.download_backup_btn.configure(state=tk.DISABLED)
         self.create_backup_btn.configure(state=tk.DISABLED)
 
-        self.progressbar.configure(mode="indeterminate", value=0)
+        self.progressbar.configure(value=0)
         self.progressbar_style.configure(style="grey.Horizontal.TProgressbar", background='grey')
 
         self.progressbar_thread = AsyncAction_ProgressBar(self.progressbar)
@@ -156,7 +156,6 @@ class BUFwindow(tk.Tk):
 
     def stop_action(self):
         self.dynamictext_thread.stop()
-        self.progressbar_thread.stop()
 
         self.select_game_path_btn.configure(state=tk.NORMAL)
         self.select_backup_path_btn.configure(state=tk.NORMAL)
@@ -166,7 +165,6 @@ class BUFwindow(tk.Tk):
         self.download_backup_btn.configure(state=tk.NORMAL)
         self.create_backup_btn.configure(state=tk.NORMAL)
 
-        self.progressbar.configure(mode="determinate", value=1000)
         self.progressbar_style.configure(style="grey.Horizontal.TProgressbar", background='green')
 
 
@@ -176,11 +174,9 @@ class AsyncAction_ProgressBar(threading.Thread):
 
         self.progressbar = progressbar
 
-    def run(self):
-        self.progressbar.start(interval=1)
-
-    def stop(self):
-        self.progressbar.stop()
+    def update_bar(self, current):
+        self.progressbar.configure(value=current)
+        self.progressbar.update()
 
 
 class AsyncAction_DynamicText(threading.Thread):
